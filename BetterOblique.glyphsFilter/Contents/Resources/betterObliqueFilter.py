@@ -101,7 +101,7 @@ def offset_path(path, distance, subdivide=True):
                         # Keep splitting at midpoint if the curvature is still steep.
                         mid_point = segment.pointAtTime(0.5)
                         start_angle, end_angle = beziers.line.Line(segment[0], mid_point).endAngle, beziers.line.Line(mid_point, segment[-1]).startAngle
-                        if abs(start_angle - end_angle) > math.radians(20.0):
+                        if abs(angle_diff(start_angle, end_angle)) > math.radians(20.0):
                             splitted_segments.extend(segment.splitAtTime(0.5))
                             has_performed_split_in_segment = True
                     elif pass_in_progress == 0:
