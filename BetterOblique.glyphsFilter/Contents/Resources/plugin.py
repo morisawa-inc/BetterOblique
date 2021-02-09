@@ -91,9 +91,27 @@ class BetterObliqueFilter(FilterWithDialog):
         self.setStrengthFactor_(self.strengthFactor())
         self.setShouldKeepCenter_(self.shouldKeepCenter())
         self.setShouldApplyWithoutSkewing_(self.shouldApplyWithoutSkewing())
+        
+        self._final = False
+        
+    def final(self):
+        self._final = True
+    
+    def process_(self, sender):
+        super(BetterObliqueFilter, self).process_(sender)
+        self._final = False
     
     @objc.python_method
     def filter(self, layer, inEditView, customParameters):
+        
+        # This filter is painfully slow for batch processing, and making a preview is too expensive.
+        # When the custom parameter dict is empty and multiple glyphs are selected in the font view,
+        # execute the transformation only right after the user presses the apply button in the dialog.
+        if not customParameters and not inEditView:
+            if len(Glyphs.font.selection) > 1:
+                if not self._final:
+                    return
+        
         font = layer.parent.parent
         master = font.masters[layer.layerId]
         
