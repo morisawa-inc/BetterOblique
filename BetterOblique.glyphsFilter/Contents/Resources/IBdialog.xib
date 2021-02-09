@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="17156" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="17156"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner" customClass="BetterObliqueFilter">
+            <connections>
+                <outlet property="dialog" destination="1" id="kzC-yw-bol"/>
+            </connections>
+        </customObject>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <customView misplaced="YES" id="1">
+            <rect key="frame" x="0.0" y="0.0" width="318" height="216"/>
+            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+            <subviews>
+                <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="QJG-Y0-8kZ">
+                    <rect key="frame" x="139" y="100" width="161" height="18"/>
+                    <buttonCell key="cell" type="check" title="Keep center" bezelStyle="regularSquare" imagePosition="left" inset="2" id="PFY-6d-psZ">
+                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                        <font key="font" metaFont="system"/>
+                    </buttonCell>
+                    <connections>
+                        <binding destination="-2" name="value" keyPath="shouldKeepCenter" id="x4u-8r-iTM"/>
+                    </connections>
+                </button>
+                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="vE4-ap-D98">
+                    <rect key="frame" x="92" y="178" width="43" height="16"/>
+                    <textFieldCell key="cell" lineBreakMode="clipping" title="Angle:" id="NOg-pI-4K7">
+                        <font key="font" metaFont="system"/>
+                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+                <stepper horizontalHuggingPriority="750" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Pxs-w2-YBk">
+                    <rect key="frame" x="190" y="172" width="19" height="28"/>
+                    <stepperCell key="cell" continuous="YES" alignment="left" minValue="-90" maxValue="90" id="Ia6-Ua-Ifh"/>
+                    <connections>
+                        <binding destination="-2" name="value" keyPath="angle" id="5w9-cH-BvS"/>
+                    </connections>
+                </stepper>
+                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Yr5-Cc-GAA">
+                    <rect key="frame" x="18" y="149" width="117" height="16"/>
+                    <textFieldCell key="cell" lineBreakMode="clipping" title="Optical correction:" id="8Ri-GG-KAl">
+                        <font key="font" metaFont="system"/>
+                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+                <textField verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="z73-WC-tq9">
+                    <rect key="frame" x="141" y="175" width="48" height="21"/>
+                    <constraints>
+                        <constraint firstAttribute="width" constant="48" id="1fW-7l-5g9"/>
+                    </constraints>
+                    <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" alignment="right" drawsBackground="YES" id="ku8-cv-nxb">
+                        <numberFormatter key="formatter" formatterBehavior="custom10_4" positiveFormat="#,##0.###°" negativeFormat="#,##0.###°" numberStyle="decimal" formatWidth="-1" minimumIntegerDigits="1" maximumIntegerDigits="2000000000" maximumFractionDigits="3" id="aty-Cl-yYP">
+                            <real key="minimum" value="-90"/>
+                            <real key="maximum" value="90"/>
+                        </numberFormatter>
+                        <font key="font" metaFont="system"/>
+                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                    <connections>
+                        <binding destination="-2" name="value" keyPath="angle" id="ytN-Ve-8ya"/>
+                    </connections>
+                </textField>
+                <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ham-si-psR">
+                    <rect key="frame" x="139" y="143" width="87" height="25"/>
+                    <popUpButtonCell key="cell" type="push" title="None" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="dCt-eG-RQp" id="0fZ-uD-2Li">
+                        <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                        <font key="font" metaFont="menu"/>
+                        <menu key="menu" id="IeX-NV-YCp">
+                            <items>
+                                <menuItem title="None" state="on" id="dCt-eG-RQp"/>
+                                <menuItem title="Thin" id="34b-xL-asW"/>
+                                <menuItem title="Medium" id="vdj-55-Tqp"/>
+                                <menuItem title="Thick" id="DrO-aw-iOu"/>
+                            </items>
+                        </menu>
+                    </popUpButtonCell>
+                    <connections>
+                        <binding destination="-2" name="selectedIndex" keyPath="opticalCorrection" id="pAr-YJ-ept"/>
+                    </connections>
+                </popUpButton>
+                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="hoM-C1-Hww">
+                    <rect key="frame" x="18" y="20" width="282" height="70"/>
+                    <constraints>
+                        <constraint firstAttribute="width" constant="278" id="1qG-zR-XxK"/>
+                        <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="70" id="RhR-WT-UlZ"/>
+                    </constraints>
+                    <textFieldCell key="cell" id="dUD-lS-ybw">
+                        <font key="font" metaFont="smallSystem"/>
+                        <string key="title">This plugin applies a skew effect to the outline with optical correction, which tries to normalize the thickness of the strokes after transformed. Expects that the path overlaps are not removed. Might not work for serif, slab or script fonts.</string>
+                        <color key="textColor" name="secondaryLabelColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+                <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="8V4-6K-NNa">
+                    <rect key="frame" x="139" y="122" width="161" height="18"/>
+                    <buttonCell key="cell" type="check" title="Ignore clockwise paths" bezelStyle="regularSquare" imagePosition="left" inset="2" id="0qm-GG-Eci">
+                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                        <font key="font" metaFont="system"/>
+                    </buttonCell>
+                    <connections>
+                        <binding destination="-2" name="value" keyPath="shouldIgnoreClockwisePaths" id="vHs-jE-hoL"/>
+                    </connections>
+                </button>
+            </subviews>
+            <constraints>
+                <constraint firstAttribute="trailing" secondItem="8V4-6K-NNa" secondAttribute="trailing" constant="20" symbolic="YES" id="0Xa-Nu-KIR"/>
+                <constraint firstItem="vE4-ap-D98" firstAttribute="firstBaseline" secondItem="z73-WC-tq9" secondAttribute="firstBaseline" id="4sA-Hf-sUz"/>
+                <constraint firstItem="ham-si-psR" firstAttribute="top" secondItem="z73-WC-tq9" secondAttribute="bottom" constant="8" id="57Q-fx-L9P"/>
+                <constraint firstItem="z73-WC-tq9" firstAttribute="leading" secondItem="vE4-ap-D98" secondAttribute="trailing" constant="8" symbolic="YES" id="6av-pd-Fxb"/>
+                <constraint firstItem="QJG-Y0-8kZ" firstAttribute="leading" secondItem="z73-WC-tq9" secondAttribute="leading" id="Mne-Mz-d5S"/>
+                <constraint firstItem="z73-WC-tq9" firstAttribute="top" secondItem="1" secondAttribute="top" constant="20" symbolic="YES" id="Rl5-iB-V4P"/>
+                <constraint firstItem="vE4-ap-D98" firstAttribute="trailing" secondItem="Yr5-Cc-GAA" secondAttribute="trailing" id="VLz-z9-wY1"/>
+                <constraint firstAttribute="bottom" secondItem="hoM-C1-Hww" secondAttribute="bottom" constant="20" symbolic="YES" id="W1K-ta-kqJ"/>
+                <constraint firstAttribute="trailing" secondItem="hoM-C1-Hww" secondAttribute="trailing" constant="20" symbolic="YES" id="XeB-6m-Sa5"/>
+                <constraint firstItem="Pxs-w2-YBk" firstAttribute="leading" secondItem="z73-WC-tq9" secondAttribute="trailing" constant="4" id="YlN-g6-D1o"/>
+                <constraint firstItem="Pxs-w2-YBk" firstAttribute="centerY" secondItem="z73-WC-tq9" secondAttribute="centerY" id="aoO-i0-wif"/>
+                <constraint firstItem="ham-si-psR" firstAttribute="leading" secondItem="Yr5-Cc-GAA" secondAttribute="trailing" constant="8" symbolic="YES" id="boW-Nl-1Ga"/>
+                <constraint firstItem="8V4-6K-NNa" firstAttribute="leading" secondItem="z73-WC-tq9" secondAttribute="leading" id="cQX-PE-WGn"/>
+                <constraint firstItem="8V4-6K-NNa" firstAttribute="top" secondItem="ham-si-psR" secondAttribute="bottom" constant="8" symbolic="YES" id="deR-Cq-OBb"/>
+                <constraint firstItem="QJG-Y0-8kZ" firstAttribute="top" secondItem="8V4-6K-NNa" secondAttribute="bottom" constant="8" id="j4E-tY-eUh"/>
+                <constraint firstAttribute="trailing" secondItem="QJG-Y0-8kZ" secondAttribute="trailing" constant="20" symbolic="YES" id="kXs-Jn-3py"/>
+                <constraint firstItem="hoM-C1-Hww" firstAttribute="leading" secondItem="1" secondAttribute="leading" constant="20" symbolic="YES" id="oQX-nm-Sga"/>
+                <constraint firstItem="hoM-C1-Hww" firstAttribute="top" secondItem="QJG-Y0-8kZ" secondAttribute="bottom" constant="12" id="pA6-mW-siU"/>
+                <constraint firstItem="Yr5-Cc-GAA" firstAttribute="firstBaseline" secondItem="ham-si-psR" secondAttribute="firstBaseline" id="wlw-lm-446"/>
+                <constraint firstItem="Yr5-Cc-GAA" firstAttribute="leading" secondItem="1" secondAttribute="leading" constant="20" symbolic="YES" id="xVZ-se-cFY"/>
+            </constraints>
+            <point key="canvasLocation" x="73" y="137.5"/>
+        </customView>
+        <userDefaultsController representsSharedInstance="YES" id="Qtl-At-dqP"/>
+    </objects>
+</document>
