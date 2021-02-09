@@ -82,7 +82,6 @@ def offset_path(path, distance, subdivide=True):
         distance = constant_distance_func
 
     # Add a midpoint to each steep curve to compensate errors when offsetting.
-    # Offset distances are also subdivided.
     original_points_in_segments = None 
     if subdivide:
         original_points_in_segments = set()
@@ -128,7 +127,7 @@ def offset_path(path, distance, subdivide=True):
     
     number_of_segments = len(segments)
     
-    # Offset paths based based on the approximation proposed by Tiller and Hanson. Each corner will have a miter joint.
+    # Offset paths based on the approximation proposed by Tiller and Hanson. Each corner will have a miter joint.
     #   Control points of offset bezier curve - Mathematics Stack Exchange
     #   https://math.stackexchange.com/questions/465782/control-points-of-offset-bezier-curve
     translation_dict = {}
