@@ -1,198 +1,270 @@
+# -*- coding: utf-8 -*-
+
 from __future__ import division
 
-from fontTools.pens.areaPen import AreaPen
+import beziers.point
+import beziers.path
+import beziers.line
+import beziers.cubicbezier
+import beziers.affinetransformation
 
-from guessAnglePen import GuessAnglePen
-from guessVerticalStemThicknessPen import GuessVerticalStemThicknessPen
+from fontTools.pens.pointPen import SegmentToPointPen
 
 import math
-import collections
-
-from Cocoa import NSPoint, NSContainsRect
+import cmath
 
 from GlyphsApp import *
 from GlyphsApp.plugins import *
 
-PathStatistics = collections.namedtuple('PathStatistics', ('path', 'angle', 'area'))
+def mean_angle(*radians):
+    # Averages/Mean angle - Rosetta Code
+    # https://rosettacode.org/wiki/Averages/Mean_angle#Python
+    return cmath.phase(sum(cmath.rect(1, rad) for rad in radians) / len(radians))
 
-def make_path_statistics(path):
-    if False:
-        pen = StatisticsPen()
-        path.draw(pen)
-        return PathStatistics(path, pen.slant, pen.area)
-    else:
-        guess_angle_pen = GuessAnglePen()
-        area_pen = AreaPen()
-        path.draw(guess_angle_pen)
-        path.draw(area_pen)
-        return PathStatistics(path, guess_angle_pen.angle, area_pen.value)
-
-def make_upright_path_statistics(base_path_statistics):
-    if base_path_statistics.angle is None:
+def lli8(x1, y1, x2, y2, x3, y3, x4, y4):
+    nx = (x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)
+    ny = (x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)
+    d  = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
+    if d == 0:
         return None
-    new_path = base_path_statistics.path.copy()
-    t = math.pi / 2.0 + base_path_statistics.angle # Make it upright regardless
-    new_path.applyTransform((math.cos(t), -math.sin(t), math.sin(t), math.cos(t), 0.0, 0.0))
-    return make_path_statistics(new_path)
+    return beziers.point.Point(nx / d, ny / d)
 
-def calc_path_complexity(upright_path_statics):
-    path = upright_path_statics.path
-    bounds_area = path.bounds.size.width * path.bounds.size.height
-    path_area = abs(upright_path_statics.area)
-    complexity = 1.0 - (path_area / bounds_area)
-    return complexity
+def lli4(p1, p2, p3, p4):
+    return lli8(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, p4.x, p4.y)
 
-#
+def line_line_intersection(segment1, segment2):
+    # A Primer on Bézier Curves - Implementing line-line intersections
+    # https://pomax.github.io/bezierinfo#intersections
+    return lli4(segment1[0], segment1[-1], segment2[0], segment2[-1])
 
-def intersection_of_segments(s1, s2):
-    # Find an intersection of the two given lines:
-    #   https://pomax.github.io/bezierinfo/#intersections
-    def _(x1, y1, x2, y2, x3, y3, x4, y4):
-        nx = (x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)
-        ny = (x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)
-        d  = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
-        return (nx / d, ny / d) if d != 0 else None
-    return _(s1[0][0], s1[0][1], s1[1][0], s1[1][1], s2[0][0], s2[0][1], s2[1][0], s2[1][1])
+def gradual_distance_from_angle(dx, dy, angle):
+    ratio = abs((angle % math.pi) / (math.pi / 2.0))
+    return (1.0 - ratio) * dx + ratio * dy
 
-def calc_rotated_segment(s, angle):
-    # Rotate a line by 90 degrees:
-    #  https://en.wikipedia.org/wiki/Rotation_matrix#In_two_dimensions
-    x, y = (s[1][0] - s[0][0], s[1][1] - s[0][1])
-    rx = x * math.cos(angle) - y * math.sin(angle)
-    ry = x * math.sin(angle) + y * math.cos(angle)
-    return (s[0], NSPoint(s[0][0] + rx, s[0][1] + ry))
+def expected_stem_scale(stem_angle, shear_angle, stem_size=1.0):
+    # Make a stem with the given angle, and return the width after transformation.
+    segment = beziers.line.Line(beziers.point.Point(0.0, 0.0), beziers.point.Point(0.0, stem_size))
+    segment = segment.rotated(beziers.point.Point(0.0, 0.0), stem_angle)
+    segment = segment.transformed(beziers.affinetransformation.AffineTransformation(((1, math.sin(shear_angle), 0), (0, 1, 0), (0, 0, 1))))
+    return segment.length
 
-def calc_thickness_of_rectangular_path(path):
-    # Find the longest and seemingly parallel lines of the given rectangular path.
-    # Rotate one of the lines by 90 degrees and find the intersections.
-    # Calculate the distance of the points and that will be the thickness we need.
-    if len(path.segments) == 4:
-        tuple_segments = (((s[0].x, s[0].y), (s[1].x, s[1].y)) for s in path.segments)
-        sorted_segments = list(sorted(tuple_segments, key=lambda s: -abs(math.hypot(s[1][0] - s[0][0], s[1][1] - s[0][1]))))
-        s1, s2 = (sorted_segments[0], sorted_segments[1])
-        rs = calc_rotated_segment(s1, (math.pi / 2.0))
-        i1, i2 = (intersection_of_segments(s1, rs), intersection_of_segments(s2, rs))
-        d = abs(math.hypot(i2[0] - i1[0], i2[1] - i1[1]))
-        return d
-    return None
-
-def calc_thickness_after_shear(rotate_radians, shear_radians, width=1000.0, height=1.0):
-    # Make a closed rectangle path.
-    path = GSPath()
-    path.nodes.append(GSNode((0.0,   0.0),    LINE))
-    path.nodes.append(GSNode((width, 0.0),    LINE))
-    path.nodes.append(GSNode((width, height), LINE))
-    path.nodes.append(GSNode((0.0,   height), LINE))
-    path.closed = True
-    # Apply a shear after rotation.
-    path.applyTransform((math.cos(rotate_radians), -math.sin(rotate_radians), math.sin(rotate_radians), math.cos(rotate_radians), 0.0, 0.0))
-    path.applyTransform((1.0, 0.0, -math.tan(shear_radians), 1.0, 0.0, 0.0))
-    # Calculate the thickness of the transformed path.
-    return calc_thickness_of_rectangular_path(path)
-
-def calc_thickness_after_shear_in_degree(rotate_angle=0.0, shear_angle=36.0, width=1000.0, height=1.0):
-    return calc_thickness_after_shear(rotate_radians, shear_radians, width, height)
-
-"""
-if __name__ == '__main__':
-    # Find out the resulted diagonal stem thickness after applying a shear effect.
-    # The line is upright when the angle equals to 90, and horizontal when 0 or 180.
-    for angle in range(0, 180 + 1):
-        print(angle, calc_sheared_thickness(rotate_angle=angle, shear_angle=36.0))
-"""
-
-#
-
-def closed_paths_from_selected_nodes_in_layer(layer):
-    for path in layer.paths:
-        new_path = GSPath()
-        for node in path.nodes:
-            if node.selected:
-                new_path.nodes.append(node.copy())
-        new_path.closed = True
-        yield new_path
-
-def offset_path_horizontally(path, amount):
-    def find_filter_instance_by_name(name):
-        for instance in Glyphs.filters:
-            if instance.__class__.__name__ == name:
-                return instance
-    layer = GSLayer()
-    layer.paths.append(path.copy())
-    orig_height = path.bounds.size.height
-    offset_curve_filter = find_filter_instance_by_name('GlyphsFilterOffsetCurve')
-    offset_curve_filter.processLayer_withArguments_(layer, ['GlyphsFilterOffsetCurve', str(amount), '0.0', '0', '0.5', 'keep'])
-    new_height = layer.paths[0].bounds.size.height
-    offset_y = -(new_height - orig_height) / 2.0 if new_height > orig_height else 0.0
-    layer.paths = []
-    layer.paths.append(path.copy())
-    offset_curve_filter.processLayer_withArguments_(layer, ['GlyphsFilterOffsetCurve', str(amount), str(offset_y), '0', '0.5', 'keep'])
-    return layer.paths[0]
-    
-def calc_vstem_width_in_path(path):
-    pen = GuessVerticalStemThicknessPen()
-    path.draw(pen)
-    return pen.thickness
-
-def calc_target_thickness(mode, shear_radians):
+def target_stem_scale(shear_angle, mode=None):
     if mode == 'thick':
-        return 1.0
+        return 1.0 / expected_stem_scale(0.0, shear_angle)
     elif mode == 'thin':
-        return calc_thickness_after_shear(math.pi / 2.0, shear_radians, width=1000.0, height=1)
-    return (calc_thickness_after_shear(math.pi / 2.0, shear_radians, width=1000.0, height=1) + 1.0) / 2.0
+        return 1.0 / expected_stem_scale(math.pi / 2.0, shear_angle)
+    elif mode == 'thinnest':
+        return 1.0 / expected_stem_scale(math.pi - shear_angle, shear_angle)
+    return 1.0 / ((expected_stem_scale(0.0, shear_angle) + expected_stem_scale(math.pi / 2.0, shear_angle)) / 2.0)
 
-def is_clockwise_related_path(path, layer=None):
-    if path.direction > 0:
-        return True
-    if layer:
-        clockwise_paths = [p for p in layer.paths if p.direction > 0]
-        for clockwise_path in clockwise_paths:
-            if NSContainsRect(path.bounds, clockwise_path.bounds):
-                return True
-    return False
+def angle_diff(a, b):
+    return math.atan2(math.sin(b - a), math.cos(b - a))
 
-def apply_cursify_slant_to_path(path, hstems, vstems, shear_angle):
-    if path and hstems and vstems:
-        font = GSFont()
-        font.masters[0].horizontalStems = hstems
-        font.masters[0].verticalStems   = vstems
-        glyph = GSGlyph('A')
-        font.glyphs.append(glyph)
-        glyph.layers[0].paths.append(path.copy())
-        glyph.layers[0].doSlantingCorrectionWithAngle_Origin_(shear_angle, (0, 0))
-        path.nodes = glyph.layers[0].paths[0].nodes
+def make_distance_vector(d):
+    if isinstance(d, (int, float)):
+        d = beziers.point.Point(d, d)
+    elif isinstance(d, (tuple, list)):
+        d = beziers.point.Point(d[0], d[1])
+    return d
 
-def shear_path(path, shear_angle, optical_correction='medium', ignore_clockwise=False, use_cursify_as_fallback=False, layer=None, hstems=None, vstems=None):
-    if optical_correction and optical_correction != 'none':
-        has_corrected = False
-        if not ignore_clockwise or not is_clockwise_related_path(path, layer):
-            base_path_statistics    = make_path_statistics(path)
-            upright_path_statistics = make_upright_path_statistics(base_path_statistics)
-            if upright_path_statistics:
-                complexity = calc_path_complexity(upright_path_statistics)
-                if complexity < 0.8:
-                    if upright_path_statistics.path.bounds.size.width * (16.0 / 9.0) < upright_path_statistics.path.bounds.size.height:
-                        shear_radians = math.radians(shear_angle)
-                        expected_thickness = calc_thickness_after_shear(base_path_statistics.angle, shear_radians, width=1000.0, height=1)
-                        target_thickness = calc_target_thickness(optical_correction, shear_radians)
-                        scale_x = target_thickness / expected_thickness
-                        upright_path  = upright_path_statistics.path
-                        upright_width = calc_vstem_width_in_path(upright_path) or upright_path.bounds.size.width
-                        offset_x = (upright_width * scale_x - upright_width) / 2.0
-                        scaled_path = offset_path_horizontally(upright_path, offset_x)
-                        t = -(math.pi / 2.0 + base_path_statistics.angle)
-                        scaled_path.applyTransform((math.cos(t), -math.sin(t), math.sin(t), math.cos(t), 0.0, 0.0))
-                        path.nodes = scaled_path.nodes
-                        has_corrected = True
-        if not has_corrected and use_cursify_as_fallback:
-            apply_cursify_slant_to_path(path, hstems, vstems, shear_angle)
-    shear_radians = math.radians(-shear_angle)
-    path.applyTransform((1.0, 0.0, -math.tan(shear_radians), 1.0, 0.0, 0.0))
+def offset_path(path, distance, subdivide=True):
+    
+    segments = path.asSegments()
+    original_number_of_segments = len(segments)
+    
+    # Make a function that returns a offset distance.
+    if isinstance(distance, (int, float)):
+        distance = (distance, distance)
+    if not callable(distance):
+        dx, dy = distance[0], distance[1]
+        def constant_distance_func(segment, index, count):
+            return beziers.point.Point(dx, dy)
+        distance = constant_distance_func
 
-def shear_layer(layer, shear_angle, optical_correction='medium', ignore_clockwise=False, use_cursify_as_fallback=False, hstems=None, vstems=None, center=True):
+    # Add a midpoint to each steep curve to compensate errors when offsetting.
+    # Offset distances are also subdivided.
+    original_points_in_segments = None 
+    if subdivide:
+        original_points_in_segments = set()
+        for segment in segments:
+            original_points_in_segments.add(segment[0])
+            original_points_in_segments.add(segment[-1])
+        needs_split = True
+        pass_in_progress = 1 # FIXME: splitting at extrema seems to create funky joins.
+        while needs_split:
+            splitted_segments = []
+            has_splitted = False
+            for i, segment in enumerate(segments):
+                has_performed_split_in_segment = False
+                if isinstance(segment, beziers.cubicbezier.CubicBezier):
+                    if pass_in_progress > 0:
+                        # Keep splitting at midpoint if the curvature is still steep.
+                        mid_point = segment.pointAtTime(0.5)
+                        start_angle, end_angle = beziers.line.Line(segment[0], mid_point).endAngle, beziers.line.Line(mid_point, segment[-1]).startAngle
+                        if abs(start_angle - end_angle) > math.radians(20.0):
+                            splitted_segments.extend(segment.splitAtTime(0.5))
+                            has_performed_split_in_segment = True
+                    elif pass_in_progress == 0:
+                        # Pomax recommends to split at extrema of each segment as a first pass.
+                        #   Curve offsetting - A Primer on Bézier Curves
+                        #   https://pomax.github.io/bezierinfo/#offsetting
+                        extrema_times = segment.findExtremes()
+                        if extrema_times and len(extrema_times) > 0:
+                            t0 = 0.0
+                            sub_segment_to_be_splitted = segment
+                            for t1 in sorted(extrema_times):
+                                splitted_sub_segments = sub_segment_to_be_splitted.splitAtTime(t1 - t0)
+                                splitted_segments.append(splitted_sub_segments[0])
+                                sub_segment_to_be_splitted = splitted_sub_segments[1]
+                                t0 = t1
+                            splitted_segments.append(sub_segment_to_be_splitted)
+                            has_performed_split_in_segment = True
+                if not has_performed_split_in_segment:
+                    splitted_segments.append(segment)
+                has_splitted = has_splitted or has_performed_split_in_segment
+            segments = splitted_segments
+            needs_split = has_splitted or pass_in_progress == 0
+            pass_in_progress += 1
+    
+    number_of_segments = len(segments)
+    
+    # Offset paths based based on the approximation proposed by Tiller and Hanson. Each corner will have a miter joint.
+    #   Control points of offset bezier curve - Mathematics Stack Exchange
+    #   https://math.stackexchange.com/questions/465782/control-points-of-offset-bezier-curve
+    translation_dict = {}
+    for i in range(number_of_segments):
+        s1, s2 = segments[i], segments[(i + 1) % number_of_segments]
+        d1 = make_distance_vector(distance(s1.endAngle,   i, number_of_segments))
+        d2 = make_distance_vector(distance(s2.startAngle, i, number_of_segments))
+        d0 = make_distance_vector(distance(mean_angle(s1.endAngle, s2.startAngle), i, number_of_segments))
+        if True:
+            p1  = s2[0]
+            s1a = s1.endAngle - math.pi / 2.0
+            s1e = beziers.point.Point(s1[-1].x + math.cos(s1a) * d1.x, s1[-1].y + math.sin(s1a) * d1.y)
+            s2a = s2.startAngle - math.pi / 2.0
+            s2s = beziers.point.Point(s2[0].x  + math.cos(s2a) * d2.x, s2[0].y  + math.sin(s2a) * d2.y)
+            t1  = beziers.line.Line(s1e, s1e + s1.tangentAtTime(1.0))
+            t2  = beziers.line.Line(s2s, s2s + s2.tangentAtTime(0.0))
+            p2  = line_line_intersection(t1, t2)
+            # Give up miter join if the angle is too steep.
+            if p2 is None or s1.endAngle == s2.startAngle or abs(math.degrees(angle_diff(s2.startAngle, s1.endAngle))) < 8.0:
+                nominal_angle = mean_angle(s1.endAngle, s2.startAngle) - math.pi / 2.0
+                p2 = beziers.point.Point(p1.x + math.cos(nominal_angle) * d0.x, p1.y + math.sin(nominal_angle) * d0.y)
+            translation_dict[p1] = p2
+        if isinstance(s1, beziers.cubicbezier.CubicBezier):
+            nominal_angle = mean_angle(beziers.line.Line(s1[1], s1[2]).endAngle, beziers.line.Line(s1[2], s1[3]).startAngle) - math.pi / 2.0
+            p1 = s1[2]
+            p2 = beziers.point.Point(p1.x + math.cos(nominal_angle) * d1.x, p1.y + math.sin(nominal_angle) * d1.y)
+            translation_dict[p1] = p2
+        if isinstance(s2, beziers.cubicbezier.CubicBezier):
+            nominal_angle = mean_angle(beziers.line.Line(s2[0], s2[1]).endAngle, beziers.line.Line(s2[1], s2[2]).startAngle) - math.pi / 2.0
+            p1 = s2[1]
+            p2 = beziers.point.Point(p1.x + math.cos(nominal_angle) * d2.x, p1.y + math.sin(nominal_angle) * d2.y)
+            translation_dict[p1] = p2
+        
+    # Find subdivided points and store their translated points into a set.
+    if subdivide:
+        translated_points_to_be_removed = set()
+        for original_point, translated_point in translation_dict.items():
+            if original_point not in original_points_in_segments:
+                translated_points_to_be_removed.add(translated_point)
+    
+    # Translate points in all segments.
+    new_segments = []
+    for segment in segments:
+        if isinstance(segment, beziers.cubicbezier.CubicBezier):
+            new_segments.append(beziers.cubicbezier.CubicBezier(translation_dict.get(segment[0], segment[0]), translation_dict.get(segment[1], segment[1]), translation_dict.get(segment[2], segment[2]), translation_dict.get(segment[3], segment[3])))
+        elif isinstance(segment, beziers.line.Line):
+            new_segments.append(beziers.line.Line(translation_dict.get(segment[0], segment[0]), translation_dict.get(segment[1], segment[1])))
+    segments = new_segments
+    
+    # Remove subdivided points.
+    #   Retrieve the initial cubic Bézier curve subdivided in two Bézier curves - Mathematics Stack Exchange
+    #   https://math.stackexchange.com/questions/877725/retrieve-the-initial-cubic-bézier-curve-subdivided-in-two-bézier-curves
+    if subdivide:
+        while len(segments) > original_number_of_segments:
+            new_segments = []
+            skip_next = False
+            number_of_segments = len(segments)
+            for i in range(number_of_segments):
+                if skip_next:
+                    skip_next = False
+                    continue
+                s1, s2 = segments[i], segments[(i + 1) % number_of_segments]
+                if s1[-1] in translated_points_to_be_removed:
+                    if isinstance(s1, beziers.cubicbezier.CubicBezier):
+                        k  = s1[3].distanceFrom(s1[2]) / s2[0].distanceFrom(s2[1])
+                        p  = (s1[1] * (1 + k) - s1[0]) / k
+                        q  = s2[2]  * (1 + k) - s2[3]  * k
+                        s1 = beziers.cubicbezier.CubicBezier(s1[0], p, q, s2[3])
+                        skip_next = True
+                    else:
+                        s1 = beziers.cubicbezier.Line(s1[0], s2[-1])
+                        skip_next = True
+                new_segments.append(s1)
+            segments = new_segments
+    
+    return beziers.path.BezierPath.fromSegments(segments)
+
+def draw(path, pen):
+    segments = path.asSegments()
+    if len(segments) > 0:
+        pen.moveTo((segments[0][0].x, segments[0][0].y))
+        for segment in segments:
+            if isinstance(segment, beziers.line.Line):
+                pen.lineTo((segment[1].x, segment[1].y))
+            elif isinstance(segment, beziers.cubicbezier.CubicBezier):
+                pen.curveTo((segment[1].x, segment[1].y), (segment[2].x, segment[2].y), (segment[3].x, segment[3].y))
+        if path.closed:
+            pen.closePath()
+
+def draw_points(path, point_pen):
+    draw(path, SegmentToPointPen(point_pen))
+
+def make_bezier_path_from_glyphs_path(gspath):
+    layer = GSLayer()
+    layer.paths.append(gspath.copy())
+    return beziers.path.BezierPath.fromGlyphsLayer(layer)[0]
+
+def offset_glyphs_path(gspath, distance):
+    layer = GSLayer()
+    path = offset_path(make_bezier_path_from_glyphs_path(gspath), distance)
+    draw_points(path, layer.getPointPen())
+    gspath.nodes = layer.paths[0].nodes
+
+def shear_path(path, shear_angle, std_vw, std_hw, mode='medium', strength=1.0, skip_shear=False):
+
+    def distance_func(angle, index, count):
+        stem_angle = angle + math.pi / 2.0
+        stem_scale = target_stem_scale(shear_angle, mode=mode) / expected_stem_scale(stem_angle, shear_angle)
+        stem_width = gradual_distance_from_angle(std_vw, std_hw, stem_angle)
+        stem_diff  = ((stem_width - stem_width * stem_scale) / 2.0) * strength
+        return stem_diff
+    
+    if mode != 'none':
+        path = offset_path(path, distance_func)
+    
+    if not skip_shear:
+        t = beziers.affinetransformation.AffineTransformation(((1, math.sin(shear_angle), 0), (0, 1, 0), (0, 0, 1)))
+        path = beziers.path.BezierPath.fromSegments([s.transformed(t) for s in path.asSegments()])
+    
+    return path
+
+def shear_gspath(gspath, shear_angle, std_vw, std_hw, mode='medium', strength=1.0, skip_shear=False):
+    layer = GSLayer()
+    path = shear_path(make_bezier_path_from_glyphs_path(gspath), shear_angle, std_vw, std_hw, mode=mode, strength=strength, skip_shear=skip_shear)
+    draw_points(path, layer.getPointPen())
+    if len(layer.paths) > 0 and layer.paths[0]:
+        gspath.nodes = layer.paths[0].nodes
+
+#
+
+def shear_layer(layer, shear_angle, std_vw=40.0, std_hw=40.0, optical_correction='medium', strength=1.0, center=True, skip_shear=False):
+    if std_vw is None or std_hw is None:
+        raise ValueError('StdVW and StdHW need to be defined to run this filter.')
     orig_bounds = layer.bounds
     for path in layer.paths:
-        shear_path(path, shear_angle, optical_correction=optical_correction, ignore_clockwise=ignore_clockwise, use_cursify_as_fallback=use_cursify_as_fallback, hstems=hstems, vstems=vstems)
+        shear_gspath(path, shear_angle, std_vw, std_hw, mode=optical_correction, strength=strength, skip_shear=skip_shear)
     new_bounds = layer.bounds
     if center:
         orig_center_x = orig_bounds.origin.x + orig_bounds.size.width / 2.0

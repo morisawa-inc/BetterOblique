@@ -1,4 +1,4 @@
-BUNDLE = GuessAndFixPathDirection.glyphsFilter
+BUNDLE = BetterOblique.glyphsFilter
 
 .PHONY: all
 all: $(BUNDLE)/Contents/_CodeSignature/CodeResources
@@ -15,8 +15,3 @@ $(BUNDLE)/Contents/_CodeSignature/CodeResources: $(SRC)
 .PHONY: clean
 clean: 
 	rm -rf $(BUNDLE)/Contents/_CodeSignature
-
-.PHONY: sampler
-sampler: test/data/ContourDirectionTestCase.glyphs
-	test/sampler.py $<
-	mogrify -resize x512 0*.png

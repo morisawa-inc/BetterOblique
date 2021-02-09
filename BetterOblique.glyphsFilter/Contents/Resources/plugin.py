@@ -6,9 +6,14 @@ import objc
 from GlyphsApp import *
 from GlyphsApp.plugins import *
 
-from AppKit import NSOnState, NSOffState
-
+import sys
+import os
+if os.path.join(os.path.dirname(__file__), 'site-packages') not in sys.path:
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'site-packages'))
 from betterObliqueFilter import shear_layer
+del sys.path[0]
+
+import math
 
 class BetterObliqueFilter(FilterWithDialog):
     
@@ -36,15 +41,15 @@ class BetterObliqueFilter(FilterWithDialog):
             self.didChangeValueForKey_('opticalCorrection')
             self.update()
     
-    def shouldIgnoreClockwisePaths(self):
-        return Glyphs.boolDefaults['jp.co.morisawa.BetterOblique.shouldIgnoreClockwisePaths'] or False
+    def strengthFactor(self):
+        return Glyphs.defaults['jp.co.morisawa.BetterOblique.strengthFactor'] or 0
     
-    def setShouldIgnoreClockwisePaths_(self, value):
-        value = bool(value)
-        if value != Glyphs.boolDefaults['jp.co.morisawa.BetterOblique.shouldIgnoreClockwisePaths']:
-            self.willChangeValueForKey_('shouldIgnoreClockwisePaths')
-            Glyphs.defaults['jp.co.morisawa.BetterOblique.shouldIgnoreClockwisePaths'] = bool(value)
-            self.didChangeValueForKey_('shouldIgnoreClockwisePaths')
+    def setStrengthFactor_(self, value):
+        value = int(value)
+        if value != Glyphs.defaults['jp.co.morisawa.BetterOblique.strengthFactor']:
+            self.willChangeValueForKey_('strengthFactor')
+            Glyphs.defaults['jp.co.morisawa.BetterOblique.strengthFactor'] = int(value)
+            self.didChangeValueForKey_('strengthFactor')
             self.update()
     
     def shouldKeepCenter(self):
@@ -57,6 +62,17 @@ class BetterObliqueFilter(FilterWithDialog):
             Glyphs.defaults['jp.co.morisawa.BetterOblique.shouldKeepCenter'] = bool(value)
             self.didChangeValueForKey_('shouldKeepCenter')
             self.update()
+    
+    def shouldApplyWithoutSkewing(self):
+        return Glyphs.boolDefaults['jp.co.morisawa.BetterOblique.shouldApplyWithoutSkewing'] or False
+    
+    def setShouldApplyWithoutSkewing_(self, value):
+        value = bool(value)
+        if value != Glyphs.boolDefaults['jp.co.morisawa.BetterOblique.shouldApplyWithoutSkewing']:
+            self.willChangeValueForKey_('shouldApplyWithoutSkewing')
+            Glyphs.defaults['jp.co.morisawa.BetterOblique.shouldApplyWithoutSkewing'] = bool(value)
+            self.didChangeValueForKey_('shouldApplyWithoutSkewing')
+            self.update()
 
     @objc.python_method
     def settings(self):
@@ -66,32 +82,43 @@ class BetterObliqueFilter(FilterWithDialog):
     @objc.python_method
     def start(self):
         Glyphs.registerDefault('jp.co.morisawa.BetterOblique.opticalCorrection', 1)
-        Glyphs.registerDefault('jp.co.morisawa.BetterOblique.shouldIgnoreClockwisePaths', False)
+        Glyphs.registerDefault('jp.co.morisawa.BetterOblique.strengthFactor', 0)
         Glyphs.registerDefault('jp.co.morisawa.BetterOblique.shouldKeepCenter', True)
+        Glyphs.registerDefault('jp.co.morisawa.BetterOblique.shouldApplyWithoutSkewing', False)
+
         self.setAngle_(self.angle())
         self.setOpticalCorrection_(self.opticalCorrection())
-        self.setShouldIgnoreClockwisePaths_(self.shouldIgnoreClockwisePaths())
+        self.setStrengthFactor_(self.strengthFactor())
         self.setShouldKeepCenter_(self.shouldKeepCenter())
+        self.setShouldApplyWithoutSkewing_(self.shouldApplyWithoutSkewing())
     
     @objc.python_method
     def filter(self, layer, inEditView, customParameters):
         font = layer.parent.parent
         master = font.masters[layer.layerId]
-        shear_angle = customParameters.get('angle', self.angle())
+        
+        std_vw, std_hw = (40.0, 40.0)
+        if master.verticalStems and len(master.verticalStems) > 0:
+            std_vw = master.verticalStems[0]
+        if master.horizontalStems and len(master.horizontalStems) > 0:
+            std_hw = master.horizontalStems[0]
+        shear_angle = math.radians(customParameters.get('angle', self.angle()))
         optical_correction = ('none', 'thin', 'medium', 'thick')[customParameters.get('opticalCorrection', self.opticalCorrection())]
-        ignore_clockwise = customParameters.get('ignoreClockwise', self.shouldIgnoreClockwisePaths())
-        use_cursify_as_fallback = ignore_clockwise
+        strength = (10.0 - customParameters.get('strengthFactor', self.strengthFactor())) / 10.0
         keep_center = customParameters.get('keepCenter', self.shouldKeepCenter())
-        shear_layer(layer, shear_angle, optical_correction=optical_correction, ignore_clockwise=ignore_clockwise, use_cursify_as_fallback=use_cursify_as_fallback, hstems=master.horizontalStems, vstems=master.verticalStems, center=keep_center)
+        skip_shear = customParameters.get('applyWithoutSkewing', self.shouldApplyWithoutSkewing())
+        
+        shear_layer(layer, shear_angle, std_vw=std_vw, std_hw=std_hw, optical_correction=optical_correction, strength=strength, center=keep_center, skip_shear=skip_shear)
     
     @objc.python_method
     def generateCustomParameter(self):
-        return "{0}; angle:{1}; opticalCorrection:{2}; ignoreClockwise:{3}; keepCenter:{4};".format(
+        return "{0}; angle:{1}; opticalCorrection:{2}; strengthFactor:{3}; keepCenter:{4}; applyWithoutSkewing:{5}".format(
             self.__class__.__name__,
             self.angle() or 0.0,
             self.opticalCorrection() or 0,
-            1 if self.shouldIgnoreClockwisePaths() else 0,
-            1 if self.shouldKeepCenter() else 0
+            self.strengthFactor() or 0,
+            1 if self.shouldKeepCenter() else 0,
+            1 if self.shouldApplyWithoutSkewing() else 0
             )
 
     @objc.python_method
