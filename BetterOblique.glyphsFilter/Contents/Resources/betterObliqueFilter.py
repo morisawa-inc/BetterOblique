@@ -45,7 +45,7 @@ def expected_stem_scale(stem_angle, shear_angle, stem_size=1.0):
     # Make a stem with the given angle, and return the width after transformation.
     segment = beziers.line.Line(beziers.point.Point(0.0, 0.0), beziers.point.Point(0.0, stem_size))
     segment = segment.rotated(beziers.point.Point(0.0, 0.0), stem_angle)
-    segment = segment.transformed(beziers.affinetransformation.AffineTransformation(((1, math.sin(shear_angle), 0), (0, 1, 0), (0, 0, 1))))
+    segment = segment.transformed(beziers.affinetransformation.AffineTransformation(((1, math.tan(shear_angle), 0), (0, 1, 0), (0, 0, 1))))
     return segment.length
 
 def target_stem_scale(shear_angle, mode=None):
@@ -244,7 +244,7 @@ def shear_path(path, shear_angle, std_vw, std_hw, mode='medium', strength=1.0, s
         path = offset_path(path, distance_func)
     
     if not skip_shear:
-        t = beziers.affinetransformation.AffineTransformation(((1, math.sin(shear_angle), 0), (0, 1, 0), (0, 0, 1)))
+        t = beziers.affinetransformation.AffineTransformation(((1, math.tan(shear_angle), 0), (0, 1, 0), (0, 0, 1)))
         path = beziers.path.BezierPath.fromSegments([s.transformed(t) for s in path.asSegments()])
     
     return path
