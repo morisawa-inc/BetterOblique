@@ -41,21 +41,26 @@ def gradual_distance_from_angle(dx, dy, angle):
     ratio = abs((angle % math.pi) / (math.pi / 2.0))
     return (1.0 - ratio) * dx + ratio * dy
 
-def expected_stem_scale(stem_angle, shear_angle, stem_size=1.0):
+def shear_matrix(shear_angle, vertical=False):
+    if vertical:
+        return ((1, 0, 0), (math.tan(shear_angle), 1, 0), (0, 0, 1))
+    return ((1, math.tan(shear_angle), 0), (0, 1, 0), (0, 0, 1))
+
+def expected_stem_scale(stem_angle, shear_angle, stem_size=1.0, vertical=False):
     # Make a stem with the given angle, and return the width after transformation.
     segment = beziers.line.Line(beziers.point.Point(0.0, 0.0), beziers.point.Point(0.0, stem_size))
     segment = segment.rotated(beziers.point.Point(0.0, 0.0), stem_angle)
-    segment = segment.transformed(beziers.affinetransformation.AffineTransformation(((1, math.tan(shear_angle), 0), (0, 1, 0), (0, 0, 1))))
+    segment = segment.transformed(beziers.affinetransformation.AffineTransformation(shear_matrix(shear_angle, vertical=vertical)))
     return segment.length
 
-def target_stem_scale(shear_angle, mode=None):
+def target_stem_scale(shear_angle, vertical=False, mode=None):
     if mode == 'thick':
-        return 1.0 / expected_stem_scale(0.0, shear_angle)
+        return 1.0 / expected_stem_scale(0.0, shear_angle, vertical=vertical)
     elif mode == 'thin':
-        return 1.0 / expected_stem_scale(math.pi / 2.0, shear_angle)
+        return 1.0 / expected_stem_scale(math.pi / 2.0, shear_angle, vertical=vertical)
     elif mode == 'thinnest':
-        return 1.0 / expected_stem_scale(math.pi - shear_angle, shear_angle)
-    return 1.0 / ((expected_stem_scale(0.0, shear_angle) + expected_stem_scale(math.pi / 2.0, shear_angle)) / 2.0)
+        return 1.0 / expected_stem_scale(math.pi - shear_angle, shear_angle, vertical=vertical)
+    return 1.0 / ((expected_stem_scale(0.0, shear_angle, vertical=vertical) + expected_stem_scale(math.pi / 2.0, shear_angle, vertical=vertical)) / 2.0)
 
 def angle_diff(a, b):
     return math.atan2(math.sin(b - a), math.cos(b - a))
@@ -231,11 +236,11 @@ def offset_glyphs_path(gspath, distance):
     draw_points(path, layer.getPointPen())
     gspath.nodes = layer.paths[0].nodes
 
-def shear_path(path, shear_angle, std_vw, std_hw, mode='medium', strength=1.0, skip_shear=False):
+def shear_path(path, shear_angle, std_vw, std_hw, mode='medium', strength=1.0, vertical=False, skip_shear=False):
 
     def distance_func(angle, index, count):
         stem_angle = angle + math.pi / 2.0
-        stem_scale = target_stem_scale(shear_angle, mode=mode) / expected_stem_scale(stem_angle, shear_angle)
+        stem_scale = target_stem_scale(shear_angle, vertical=vertical, mode=mode) / expected_stem_scale(stem_angle, shear_angle, vertical=vertical)
         stem_width = gradual_distance_from_angle(std_vw, std_hw, stem_angle)
         stem_diff  = ((stem_width - stem_width * stem_scale) / 2.0) * strength
         return stem_diff
@@ -244,30 +249,30 @@ def shear_path(path, shear_angle, std_vw, std_hw, mode='medium', strength=1.0, s
         path = offset_path(path, distance_func)
     
     if not skip_shear:
-        t = beziers.affinetransformation.AffineTransformation(((1, math.tan(shear_angle), 0), (0, 1, 0), (0, 0, 1)))
+        t = beziers.affinetransformation.AffineTransformation(shear_matrix(shear_angle, vertical=vertical))
         path = beziers.path.BezierPath.fromSegments([s.transformed(t) for s in path.asSegments()])
     
     return path
 
-def shear_gspath(gspath, shear_angle, std_vw, std_hw, mode='medium', strength=1.0, skip_shear=False):
+def shear_gspath(gspath, shear_angle, std_vw, std_hw, mode='medium', strength=1.0, vertical=False, skip_shear=False):
     layer = GSLayer()
-    path = shear_path(make_bezier_path_from_glyphs_path(gspath), shear_angle, std_vw, std_hw, mode=mode, strength=strength, skip_shear=skip_shear)
+    path = shear_path(make_bezier_path_from_glyphs_path(gspath), shear_angle, std_vw, std_hw, mode=mode, strength=strength, vertical=vertical, skip_shear=skip_shear)
     draw_points(path, layer.getPointPen())
     if len(layer.paths) > 0 and layer.paths[0]:
         gspath.nodes = layer.paths[0].nodes
 
 #
 
-def shear_layer(layer, shear_angle, std_vw=40.0, std_hw=40.0, optical_correction='medium', strength=1.0, center=True, skip_shear=False):
+def shear_layer(layer, shear_angle, std_vw=40.0, std_hw=40.0, optical_correction='medium', strength=1.0, vertical=False, center=True, skip_shear=False):
     if std_vw is None or std_hw is None:
         raise ValueError('StdVW and StdHW need to be defined to run this filter.')
     orig_bounds = layer.bounds
     for path in layer.paths:
-        shear_gspath(path, shear_angle, std_vw, std_hw, mode=optical_correction, strength=strength, skip_shear=skip_shear)
+        shear_gspath(path, shear_angle, std_vw, std_hw, mode=optical_correction, strength=strength, vertical=vertical, skip_shear=skip_shear)
     new_bounds = layer.bounds
     if center:
-        orig_center_x = orig_bounds.origin.x + orig_bounds.size.width / 2.0
-        new_center_x  = new_bounds.origin.x  + new_bounds.size.width / 2.0
-        offset_x = orig_center_x - new_center_x
+        orig_center = (orig_bounds.origin.x + orig_bounds.size.width / 2.0, orig_bounds.origin.y + orig_bounds.size.height / 2.0)
+        new_center  = (new_bounds.origin.x  + new_bounds.size.width / 2.0,  new_bounds.origin.y  + new_bounds.size.height / 2.0)
+        offset = (orig_center[0] - new_center[0], orig_center[1] - new_center[1])
         for path in layer.paths:
-            path.applyTransform((1.0, 0.0, 0.0, 1.0, offset_x, 0.0))
+            path.applyTransform((1.0, 0.0, 0.0, 1.0, offset[0], offset[1]))
