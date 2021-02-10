@@ -5,6 +5,7 @@ from __future__ import division, print_function, unicode_literals
 import objc
 from GlyphsApp import *
 from GlyphsApp.plugins import *
+from AppKit import NSTextField, NSValueBinding, NSObservedObjectKey, NSObservedKeyPathKey, NSOptionsKey, NSContinuouslyUpdatesValueBindingOption
 
 import sys
 import os
@@ -14,6 +15,39 @@ from betterObliqueFilter import shear_layer
 del sys.path[0]
 
 import math
+
+
+class BetterObliqueFilterSteppingTextField(NSTextField):
+    
+    stepper = objc.IBOutlet()
+    
+    def textView_doCommandBySelector_(self, textView, selector):
+        selector_multiplier_dict = {
+            'moveUp:': 1.0,
+            'moveUpAndModifySelection:': 10.0,
+            'moveDown:': -1.0,
+            'moveDownAndModifySelection:': -10.0
+        }
+        if selector in selector_multiplier_dict:
+            stepper = self.stepper
+            increment = stepper.increment() * selector_multiplier_dict[selector]
+            value = self.doubleValue() + increment
+            value = max(stepper.minValue(), min(stepper.maxValue(), value))
+            self.setDoubleValue_(value)
+            if self.isContinuous():
+                self.validateEditing()
+            info = self.infoForBinding_(NSValueBinding)
+            if info:
+                target  = info.valueForKey_(NSObservedObjectKey)
+                keyPath = info.valueForKey_(NSObservedKeyPathKey)
+                options = info.valueForKey_(NSOptionsKey)
+                if target and keyPath and options and options.get(NSContinuouslyUpdatesValueBindingOption):
+                    target.setValue_forKeyPath_(self.doubleValue(), keyPath)
+            editor = self.currentEditor()
+            if editor:
+                editor.didChangeText()
+            return True
+        return False
 
 class BetterObliqueFilter(FilterWithDialog):
     
