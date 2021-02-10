@@ -113,7 +113,8 @@ class BetterObliqueFilter(FilterWithDialog):
                     return
         
         font = layer.parent.parent
-        master = font.masters[layer.layerId]
+        master_dict = dict(((master.id, master) for master in font.masters))
+        master = master_dict.get(layer.layerId, master_dict.get(layer.associatedMasterId))
         
         std_vw, std_hw = (40.0, 40.0)
         if master.verticalStems and len(master.verticalStems) > 0:
