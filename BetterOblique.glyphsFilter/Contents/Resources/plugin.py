@@ -86,6 +86,17 @@ class BetterObliqueFilter(FilterWithDialog):
             self.didChangeValueForKey_('strengthFactor')
             self.update()
     
+    def curveSegmentsOnly(self):
+        return Glyphs.boolDefaults['jp.co.morisawa.BetterOblique.curveSegmentsOnly'] or False
+    
+    def setCurveSegmentsOnly_(self, value):
+        value = bool(value)
+        if value != Glyphs.boolDefaults['jp.co.morisawa.BetterOblique.curveSegmentsOnly']:
+            self.willChangeValueForKey_('curveSegmentsOnly')
+            Glyphs.defaults['jp.co.morisawa.BetterOblique.curveSegmentsOnly'] = bool(value)
+            self.didChangeValueForKey_('curveSegmentsOnly')
+            self.update()
+    
     def vertical(self):
         return Glyphs.boolDefaults['jp.co.morisawa.BetterOblique.vertical'] or False
     
@@ -128,6 +139,7 @@ class BetterObliqueFilter(FilterWithDialog):
     def start(self):
         Glyphs.registerDefault('jp.co.morisawa.BetterOblique.opticalCorrection', 1)
         Glyphs.registerDefault('jp.co.morisawa.BetterOblique.strengthFactor', 0)
+        Glyphs.registerDefault('jp.co.morisawa.BetterOblique.curveSegmentsOnly', False)
         Glyphs.registerDefault('jp.co.morisawa.BetterOblique.vertical', False)
         Glyphs.registerDefault('jp.co.morisawa.BetterOblique.shouldKeepCenter', True)
         Glyphs.registerDefault('jp.co.morisawa.BetterOblique.shouldApplyWithoutSkewing', False)
@@ -135,6 +147,7 @@ class BetterObliqueFilter(FilterWithDialog):
         self.setAngle_(self.angle())
         self.setOpticalCorrection_(self.opticalCorrection())
         self.setStrengthFactor_(self.strengthFactor())
+        self.setCurveSegmentsOnly_(self.curveSegmentsOnly())
         self.setVertical_(self.vertical())
         self.setShouldKeepCenter_(self.shouldKeepCenter())
         self.setShouldApplyWithoutSkewing_(self.shouldApplyWithoutSkewing())
@@ -171,19 +184,21 @@ class BetterObliqueFilter(FilterWithDialog):
         shear_angle = math.radians(customParameters.get('angle', self.angle()))
         optical_correction = ('none', 'thin', 'medium', 'thick')[customParameters.get('opticalCorrection', self.opticalCorrection())]
         strength = (10.0 - customParameters.get('strengthFactor', self.strengthFactor())) / 10.0
+        curve_segments_only = customParameters.get('curveSegmentsOnly', self.curveSegmentsOnly())
         vertical = customParameters.get('vertical', self.vertical())
         keep_center = customParameters.get('keepCenter', self.shouldKeepCenter())
         skip_shear = customParameters.get('applyWithoutSkewing', self.shouldApplyWithoutSkewing())
         
-        shear_layer(layer, shear_angle, std_vw=std_vw, std_hw=std_hw, optical_correction=optical_correction, strength=strength, vertical=vertical, center=keep_center, skip_shear=skip_shear)
+        shear_layer(layer, shear_angle, std_vw=std_vw, std_hw=std_hw, optical_correction=optical_correction, strength=strength, curve_segments_only=curve_segments_only, vertical=vertical, center=keep_center, skip_shear=skip_shear)
     
     @objc.python_method
     def generateCustomParameter(self):
-        return "{0}; angle:{1}; opticalCorrection:{2}; strengthFactor:{3}; vertical:{4}; keepCenter:{5}; applyWithoutSkewing:{6}".format(
+        return "{0}; angle:{1}; opticalCorrection:{2}; strengthFactor:{3}; curveSegmentsOnly:{4}; vertical:{5}; keepCenter:{6}; applyWithoutSkewing:{7}".format(
             self.__class__.__name__,
             self.angle() or 0.0,
             self.opticalCorrection() or 0,
             self.strengthFactor() or 0,
+            1 if self.curveSegmentsOnly() else 0,
             1 if self.vertical() else 0,
             1 if self.shouldKeepCenter() else 0,
             1 if self.shouldApplyWithoutSkewing() else 0

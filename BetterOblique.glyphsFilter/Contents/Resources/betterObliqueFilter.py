@@ -51,7 +51,7 @@ def expected_stem_scale(stem_angle, shear_angle, stem_size=1.0, vertical=False):
     segment = beziers.line.Line(beziers.point.Point(0.0, 0.0), beziers.point.Point(0.0, stem_size))
     segment = segment.rotated(beziers.point.Point(0.0, 0.0), stem_angle)
     segment = segment.transformed(beziers.affinetransformation.AffineTransformation(shear_matrix(shear_angle, vertical=vertical)))
-    return segment.length
+    return segment.length / stem_size
 
 def target_stem_scale(shear_angle, vertical=False, mode=None):
     if mode == 'thick':
@@ -72,7 +72,7 @@ def make_distance_vector(d):
         d = beziers.point.Point(d[0], d[1])
     return d
 
-def offset_path(path, distance, subdivide=True):
+def offset_path(path, distance, subdivide=True, curve_segments_only=False):
     
     segments = path.asSegments()
     original_number_of_segments = len(segments)
@@ -142,29 +142,32 @@ def offset_path(path, distance, subdivide=True):
         d2 = make_distance_vector(distance(s2.startAngle, i, number_of_segments))
         d0 = make_distance_vector(distance(mean_angle(s1.endAngle, s2.startAngle), i, number_of_segments))
         if True:
-            p1  = s2[0]
-            s1a = s1.endAngle - math.pi / 2.0
-            s1e = beziers.point.Point(s1[-1].x + math.cos(s1a) * d1.x, s1[-1].y + math.sin(s1a) * d1.y)
-            s2a = s2.startAngle - math.pi / 2.0
-            s2s = beziers.point.Point(s2[0].x  + math.cos(s2a) * d2.x, s2[0].y  + math.sin(s2a) * d2.y)
-            t1  = beziers.line.Line(s1e, s1e + s1.tangentAtTime(1.0))
-            t2  = beziers.line.Line(s2s, s2s + s2.tangentAtTime(0.0))
-            p2  = line_line_intersection(t1, t2)
-            # Give up miter join if the angle is too steep.
-            if p2 is None or s1.endAngle == s2.startAngle or abs(math.degrees(angle_diff(s2.startAngle, s1.endAngle))) < 8.0:
-                nominal_angle = mean_angle(s1.endAngle, s2.startAngle) - math.pi / 2.0
-                p2 = beziers.point.Point(p1.x + math.cos(nominal_angle) * d0.x, p1.y + math.sin(nominal_angle) * d0.y)
-            translation_dict[p1] = p2
+            if not curve_segments_only or s2[0] not in original_points_in_segments:
+                p1  = s2[0]
+                s1a = s1.endAngle - math.pi / 2.0
+                s1e = beziers.point.Point(s1[-1].x + math.cos(s1a) * d1.x, s1[-1].y + math.sin(s1a) * d1.y)
+                s2a = s2.startAngle - math.pi / 2.0
+                s2s = beziers.point.Point(s2[0].x  + math.cos(s2a) * d2.x, s2[0].y  + math.sin(s2a) * d2.y)
+                t1  = beziers.line.Line(s1e, s1e + s1.tangentAtTime(1.0))
+                t2  = beziers.line.Line(s2s, s2s + s2.tangentAtTime(0.0))
+                p2  = line_line_intersection(t1, t2)
+                # Give up miter join if the angle is too steep.
+                if p2 is None or s1.endAngle == s2.startAngle or abs(math.degrees(angle_diff(s2.startAngle, s1.endAngle))) < 8.0:
+                    nominal_angle = mean_angle(s1.endAngle, s2.startAngle) - math.pi / 2.0
+                    p2 = beziers.point.Point(p1.x + math.cos(nominal_angle) * d0.x, p1.y + math.sin(nominal_angle) * d0.y)
+                translation_dict[p1] = p2
         if isinstance(s1, beziers.cubicbezier.CubicBezier):
-            nominal_angle = mean_angle(beziers.line.Line(s1[1], s1[2]).endAngle, beziers.line.Line(s1[2], s1[3]).startAngle) - math.pi / 2.0
-            p1 = s1[2]
-            p2 = beziers.point.Point(p1.x + math.cos(nominal_angle) * d1.x, p1.y + math.sin(nominal_angle) * d1.y)
-            translation_dict[p1] = p2
+            if not curve_segments_only or s1[2] not in original_points_in_segments:
+                nominal_angle = mean_angle(beziers.line.Line(s1[1], s1[2]).endAngle, beziers.line.Line(s1[2], s1[3]).startAngle) - math.pi / 2.0
+                p1 = s1[2]
+                p2 = beziers.point.Point(p1.x + math.cos(nominal_angle) * d1.x, p1.y + math.sin(nominal_angle) * d1.y)
+                translation_dict[p1] = p2
         if isinstance(s2, beziers.cubicbezier.CubicBezier):
-            nominal_angle = mean_angle(beziers.line.Line(s2[0], s2[1]).endAngle, beziers.line.Line(s2[1], s2[2]).startAngle) - math.pi / 2.0
-            p1 = s2[1]
-            p2 = beziers.point.Point(p1.x + math.cos(nominal_angle) * d2.x, p1.y + math.sin(nominal_angle) * d2.y)
-            translation_dict[p1] = p2
+            if not curve_segments_only or s2[1] not in original_points_in_segments:
+                nominal_angle = mean_angle(beziers.line.Line(s2[0], s2[1]).endAngle, beziers.line.Line(s2[1], s2[2]).startAngle) - math.pi / 2.0
+                p1 = s2[1]
+                p2 = beziers.point.Point(p1.x + math.cos(nominal_angle) * d2.x, p1.y + math.sin(nominal_angle) * d2.y)
+                translation_dict[p1] = p2
         
     # Find subdivided points and store their translated points into a set.
     if subdivide:
@@ -236,7 +239,7 @@ def offset_glyphs_path(gspath, distance):
     draw_points(path, layer.getPointPen())
     gspath.nodes = layer.paths[0].nodes
 
-def shear_path(path, shear_angle, std_vw, std_hw, mode='medium', strength=1.0, vertical=False, skip_shear=False):
+def shear_path(path, shear_angle, std_vw, std_hw, mode='medium', strength=1.0, curve_segments_only=False, vertical=False, skip_shear=False):
 
     def distance_func(angle, index, count):
         stem_angle = angle + math.pi / 2.0
@@ -246,7 +249,7 @@ def shear_path(path, shear_angle, std_vw, std_hw, mode='medium', strength=1.0, v
         return stem_diff
     
     if mode != 'none':
-        path = offset_path(path, distance_func)
+        path = offset_path(path, distance_func, curve_segments_only=curve_segments_only)
     
     if not skip_shear:
         t = beziers.affinetransformation.AffineTransformation(shear_matrix(shear_angle, vertical=vertical))
@@ -254,21 +257,21 @@ def shear_path(path, shear_angle, std_vw, std_hw, mode='medium', strength=1.0, v
     
     return path
 
-def shear_gspath(gspath, shear_angle, std_vw, std_hw, mode='medium', strength=1.0, vertical=False, skip_shear=False):
+def shear_gspath(gspath, shear_angle, std_vw, std_hw, mode='medium', strength=1.0, curve_segments_only=False, vertical=False, skip_shear=False):
     layer = GSLayer()
-    path = shear_path(make_bezier_path_from_glyphs_path(gspath), shear_angle, std_vw, std_hw, mode=mode, strength=strength, vertical=vertical, skip_shear=skip_shear)
+    path = shear_path(make_bezier_path_from_glyphs_path(gspath), shear_angle, std_vw, std_hw, mode=mode, strength=strength, curve_segments_only=curve_segments_only, vertical=vertical, skip_shear=skip_shear)
     draw_points(path, layer.getPointPen())
     if len(layer.paths) > 0 and layer.paths[0]:
         gspath.nodes = layer.paths[0].nodes
 
 #
 
-def shear_layer(layer, shear_angle, std_vw=40.0, std_hw=40.0, optical_correction='medium', strength=1.0, vertical=False, center=True, skip_shear=False):
+def shear_layer(layer, shear_angle, std_vw=40.0, std_hw=40.0, optical_correction='medium', strength=1.0, curve_segments_only=False, vertical=False, center=True, skip_shear=False):
     if std_vw is None or std_hw is None:
         raise ValueError('StdVW and StdHW need to be defined to run this filter.')
     orig_bounds = layer.bounds
     for path in layer.paths:
-        shear_gspath(path, shear_angle, std_vw, std_hw, mode=optical_correction, strength=strength, vertical=vertical, skip_shear=skip_shear)
+        shear_gspath(path, shear_angle, std_vw, std_hw, mode=optical_correction, strength=strength, curve_segments_only=curve_segments_only, vertical=vertical, skip_shear=skip_shear)
     new_bounds = layer.bounds
     if center:
         orig_center = (orig_bounds.origin.x + orig_bounds.size.width / 2.0, orig_bounds.origin.y + orig_bounds.size.height / 2.0)
