@@ -72,6 +72,34 @@ def make_distance_vector(d):
         d = beziers.point.Point(d[0], d[1])
     return d
 
+def join_cubic_bezier_segments(s1, s2, use_glyphs=True):
+    assert(s1[3] == s2[0])
+    # Glyphs applies more sophisticated curve fitting when removing a node.
+    if use_glyphs:
+        layer = GSLayer()
+        pen = layer.getPen()
+        pen.moveTo((s1[0].x, s1[0].y))
+        pen.curveTo((s1[1].x, s1[1].y), (s1[2].x, s1[2].y), (s1[3].x, s1[3].y))
+        pen.curveTo((s2[1].x, s2[1].y), (s2[2].x, s2[2].y), (s2[3].x, s2[3].y))
+        pen.endPath()
+        path = layer.paths[0]
+        assert(path.nodes[3].type == CURVE)
+        path.removeNodeCheckKeepShape_(path.nodes[3])
+        p = beziers.point.Point(path.nodes[1].x, path.nodes[1].y)
+        q = beziers.point.Point(path.nodes[2].x, path.nodes[2].y)
+        return beziers.cubicbezier.CubicBezier(s1[0], p, q, s2[3])
+    # Approximate the two cubic bezier segments according to the following approach:
+    #   Retrieve the initial cubic Bézier curve subdivided in two Bézier curves - Mathematics Stack Exchange
+    #   https://math.stackexchange.com/questions/877725/retrieve-the-initial-cubic-bézier-curve-subdivided-in-two-bézier-curves
+    # However, the approximation doesn't look good enough to maintain the thickness after offsetting in general.
+    # The way defcon joins segments when deleting nodes looks similar, thus it doesn't help me either:
+    #   defcon/Lib/defcon/tools/bezierMath.py
+    #   https://github.com/robotools/defcon/blob/master/Lib/defcon/tools/bezierMath.py#L12
+    k = s2[1].distanceFrom(s2[0]) / s1[2].distanceFrom(s1[3])
+    p = s1[1] * (1 + k) - s1[0] * k
+    q = (s2[2] * (1 + k) - s2[3]) / k
+    return beziers.cubicbezier.CubicBezier(s1[0], p, q, s2[3])
+
 def offset_path(path, distance, subdivide=True, curve_segments_only=False):
     
     segments = path.asSegments()
@@ -188,8 +216,6 @@ def offset_path(path, distance, subdivide=True, curve_segments_only=False):
     segments = new_segments
     
     # Remove subdivided points.
-    #   Retrieve the initial cubic Bézier curve subdivided in two Bézier curves - Mathematics Stack Exchange
-    #   https://math.stackexchange.com/questions/877725/retrieve-the-initial-cubic-bézier-curve-subdivided-in-two-bézier-curves
     if subdivide:
         while len(segments) > original_number_of_segments:
             new_segments = []
@@ -201,11 +227,8 @@ def offset_path(path, distance, subdivide=True, curve_segments_only=False):
                     continue
                 s1, s2 = segments[i], segments[(i + 1) % number_of_segments]
                 if s1[-1] in translated_points_to_be_removed:
-                    if isinstance(s1, beziers.cubicbezier.CubicBezier):
-                        k  = s1[3].distanceFrom(s1[2]) / s2[0].distanceFrom(s2[1])
-                        p  = (s1[1] * (1 + k) - s1[0]) / k
-                        q  = s2[2]  * (1 + k) - s2[3]  * k
-                        s1 = beziers.cubicbezier.CubicBezier(s1[0], p, q, s2[3])
+                    if isinstance(s1, beziers.cubicbezier.CubicBezier) and isinstance(s2, beziers.cubicbezier.CubicBezier):
+                        s1 = join_cubic_bezier_segments(s1, s2)
                         skip_next = True
                     else:
                         s1 = beziers.cubicbezier.Line(s1[0], s2[-1])
