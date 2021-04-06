@@ -186,14 +186,14 @@ def offset_path(path, distance, subdivide=True, curve_segments_only=False):
                 translation_dict[p1] = p2
         if isinstance(s1, beziers.cubicbezier.CubicBezier):
             # Always offset BCPs in subdivided segments when curve_segments_only is on.
-            if not curve_segments_only or s1[3] not in original_points_in_segments or s1[0] not in original_points_in_segments:
+            if not curve_segments_only or s1[3] not in original_points_in_segments:
                 nominal_angle = mean_angle(beziers.line.Line(s1[1], s1[2]).endAngle, beziers.line.Line(s1[2], s1[3]).startAngle) - math.pi / 2.0
                 p1 = s1[2]
                 p2 = beziers.point.Point(p1.x + math.cos(nominal_angle) * d1.x, p1.y + math.sin(nominal_angle) * d1.y)
                 translation_dict[p1] = p2
         if isinstance(s2, beziers.cubicbezier.CubicBezier):
             # Always offset BCPs in subdivided segments when curve_segments_only is on.
-            if not curve_segments_only or s2[0] not in original_points_in_segments or s2[3] not in original_points_in_segments:
+            if not curve_segments_only or s2[0] not in original_points_in_segments:
                 nominal_angle = mean_angle(beziers.line.Line(s2[0], s2[1]).endAngle, beziers.line.Line(s2[1], s2[2]).startAngle) - math.pi / 2.0
                 p1 = s2[1]
                 p2 = beziers.point.Point(p1.x + math.cos(nominal_angle) * d2.x, p1.y + math.sin(nominal_angle) * d2.y)
