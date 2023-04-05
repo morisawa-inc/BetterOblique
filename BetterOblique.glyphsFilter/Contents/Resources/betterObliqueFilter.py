@@ -285,9 +285,15 @@ def shear_path(path, shear_angle, std_vw, std_hw, mode='medium', strength=1.0, c
 def shear_gspath(gspath, shear_angle, std_vw, std_hw, mode='medium', strength=1.0, curve_segments_only=False, vertical=False, skip_shear=False):
     layer = GSLayer()
     path = shear_path(make_bezier_path_from_glyphs_path(gspath), shear_angle, std_vw, std_hw, mode=mode, strength=strength, curve_segments_only=curve_segments_only, vertical=vertical, skip_shear=skip_shear)
+    first_node = path.asSegments()[-1][0]
+    first_node_position = (first_node.x, first_node.y)
     draw_points(path, layer.getPointPen())
     if len(layer.paths) > 0 and layer.paths[0]:
         gspath.nodes = layer.paths[0].nodes
+        for node in gspath.nodes:
+            if node.type != OFFCURVE and (node.position.x, node.position.y) == first_node_position:
+                node.makeNodeFirst()
+                break
 
 #
 
