@@ -52,6 +52,7 @@ class BetterObliqueFilterSteppingTextField(NSTextField):
 class BetterObliqueFilter(FilterWithDialog):
     
     dialog = objc.IBOutlet()
+    slider = objc.IBOutlet()
 
     def angle(self):
         return Glyphs.defaults['TransformSlant'] or 0.0
@@ -161,6 +162,9 @@ class BetterObliqueFilter(FilterWithDialog):
         super(BetterObliqueFilter, self).process_(sender)
         self._final = False
     
+    def sliderValueRange(self):
+        return self.slider.maxValue() - self.slider.minValue() + 1
+    
     @objc.python_method
     def filter(self, layer, inEditView, customParameters):
         
@@ -183,7 +187,7 @@ class BetterObliqueFilter(FilterWithDialog):
             std_hw = master.horizontalStems[0]
         shear_angle = math.radians(customParameters.get('angle', self.angle()))
         optical_correction = ('none', 'thin', 'medium', 'thick')[customParameters.get('opticalCorrection', self.opticalCorrection())]
-        strength = (10.0 - customParameters.get('strengthFactor', self.strengthFactor())) / 10.0
+        strength = (self.sliderValueRange() - customParameters.get('strengthFactor', self.strengthFactor())) / self.sliderValueRange()
         curve_segments_only = customParameters.get('curveSegmentsOnly', self.curveSegmentsOnly())
         vertical = customParameters.get('vertical', self.vertical())
         keep_center = customParameters.get('keepCenter', self.shouldKeepCenter())

@@ -6,11 +6,11 @@
 	<dict>
 		<key>Resources/IBdialog.nib</key>
 		<data>
-		xL9ujhKOQrzCCfQTPumOQCxTORE=
+		VRIaJ0Z/n3Urzsjmb8iI4l7HjDM=
 		</data>
 		<key>Resources/IBdialog.xib</key>
 		<data>
-		aT/CmI5Laexfw8Y33PxtjOGBC7w=
+		FqauSxnxnMT+bpS+pETgxWfdxcw=
 		</data>
 		<key>Resources/betterObliqueFilter.py</key>
 		<data>
@@ -18,7 +18,7 @@
 		</data>
 		<key>Resources/plugin.py</key>
 		<data>
-		69mM9KyWaSu7CkJXaXHI5QyAn3c=
+		HAKbbGO2G2BV3QBGrLxZabDdSIo=
 		</data>
 		<key>Resources/site-packages/beziers/.DS_Store</key>
 		<data>
@@ -135,22 +135,22 @@
 		<dict>
 			<key>hash</key>
 			<data>
-			xL9ujhKOQrzCCfQTPumOQCxTORE=
+			VRIaJ0Z/n3Urzsjmb8iI4l7HjDM=
 			</data>
 			<key>hash2</key>
 			<data>
-			r945YO3rVbI2Vf36+G9BWW7sxwaCSbv6oWvcR+g2kJQ=
+			ybkdCpAn03JO8H30WBhKI+O3vpWac5FjZe8ZFaNaKdo=
 			</data>
 		</dict>
 		<key>Resources/IBdialog.xib</key>
 		<dict>
 			<key>hash</key>
 			<data>
-			aT/CmI5Laexfw8Y33PxtjOGBC7w=
+			FqauSxnxnMT+bpS+pETgxWfdxcw=
 			</data>
 			<key>hash2</key>
 			<data>
-			znzMMw5UhjI9JiEaC8/1aHImK8adtlqBCME7Pyngyz0=
+			uVHy2ojZCAuDorIqM1GJykgUFRlhlKRa6KKhQMKnqqo=
 			</data>
 		</dict>
 		<key>Resources/betterObliqueFilter.py</key>
@@ -168,11 +168,11 @@
 		<dict>
 			<key>hash</key>
 			<data>
-			69mM9KyWaSu7CkJXaXHI5QyAn3c=
+			HAKbbGO2G2BV3QBGrLxZabDdSIo=
 			</data>
 			<key>hash2</key>
 			<data>
-			BkCT9x+CVXqCy2nv4B5YZoZghS2qtyYxJ1rliyKFnC8=
+			ZygF3VLbn6lz5aQrWxnLzTE50cCi0Co6+rVPDbyG4G4=
 			</data>
 		</dict>
 		<key>Resources/site-packages/beziers/__init__.py</key>
