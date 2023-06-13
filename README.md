@@ -35,3 +35,7 @@ Tested with Glyphs 2.6.5 on OS X 10.11 and Glyphs 3.2 on macOS 10.15.7.
 ## License
 
 Apache License 2.0
+
+## Acknowledgements
+
+The copies of the dependencies [simoncozens/beziers.py](https://github.com/simoncozens/beziers.py) and [fonttools/pyclipper](https://github.com/fonttools/pyclipper) are included in the plugin so that it should work standalone.
