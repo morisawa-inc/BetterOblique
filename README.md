@@ -30,7 +30,7 @@ Some of the CJK radicals have diagonal strokes, and they will get inconsistent s
 
 ## Requirements
 
-Tested with Glyphs 2.6.5 on OS X 10.11.
+Tested with Glyphs 2.6.5 on OS X 10.11 and Glyphs 3.2 on macOS 10.15.7.
 
 ## License
 
