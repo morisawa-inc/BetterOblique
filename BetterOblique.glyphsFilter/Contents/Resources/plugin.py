@@ -17,6 +17,27 @@ del sys.path[0]
 import math
 
 
+def get_hstems(master):
+    if hasattr(master, 'horizontalStems'):
+        return master.horizontalStems
+    font = master.font
+    l = []
+    for stem_name in (stem.name for stem in font.stems if stem.horizontal):
+         if stem_name in master.stems:
+             l.append(master.stems[stem_name])
+    return tuple(l)
+
+def get_vstems(master):
+    if hasattr(master, 'verticalStems'):
+        return master.verticalStems
+    font = master.font
+    l = []
+    for stem_name in (stem.name for stem in font.stems if not stem.horizontal):
+         if stem_name in master.stems:
+             l.append(master.stems[stem_name])
+    return tuple(l)
+
+
 class BetterObliqueFilterSteppingTextField(NSTextField):
     
     stepper = objc.IBOutlet()
@@ -181,10 +202,11 @@ class BetterObliqueFilter(FilterWithDialog):
         master = master_dict.get(layer.layerId, master_dict.get(layer.associatedMasterId))
         
         std_vw, std_hw = (40.0, 40.0)
-        if master.verticalStems and len(master.verticalStems) > 0:
-            std_vw = master.verticalStems[0]
-        if master.horizontalStems and len(master.horizontalStems) > 0:
-            std_hw = master.horizontalStems[0]
+        hstems, vstems = get_hstems(master), get_vstems(master)
+        if vstems and len(vstems) > 0:
+            std_vw = vstems[0]
+        if hstems and len(hstems) > 0:
+            std_hw = hstems[0]
         shear_angle = math.radians(customParameters.get('angle', self.angle()))
         optical_correction = ('none', 'thin', 'medium', 'thick')[customParameters.get('opticalCorrection', self.opticalCorrection())]
         strength = (self.sliderValueRange() - customParameters.get('strengthFactor', self.strengthFactor())) / self.sliderValueRange()
