@@ -301,9 +301,8 @@ def calc_comparable_path_string(gspath):
     return layer.compareString()
 
 def fix_path_compatibility(reference_gspath, target_gspath):
-    # Match the start point between the two compatible paths.
-    # Find the start point which has the minimum distance among
-    # all the valid start points. Then make it the first node.
+    # Match the start node between the two compatible paths.
+    # Find the first valid start node and make it first in the list.
     reference_structure = calc_comparable_path_string(reference_gspath)
     target_structure = calc_comparable_path_string(target_gspath)
     if reference_structure == target_structure:
@@ -311,19 +310,9 @@ def fix_path_compatibility(reference_gspath, target_gspath):
     elif len(reference_structure) == len(target_structure):
         r = reference_structure.replace('_', '') * 2
         t = target_structure.replace('_', '')
-        closest_index, closest_distance_sum = None, sys.maxsize
         number_of_nodes = len(reference_structure)
-        for index in find_all(r, t):
-            distance_sum = 0
-            for i1 in range(number_of_nodes):
-                i2 = (i1 + index) % number_of_nodes
-                n1, n2 = reference_gspath.nodes[i1], target_gspath.nodes[i2]
-                if n1.type == n2.type:
-                    distance_sum += distance_between_nodes(n1, n2)
-            if distance_sum < closest_distance_sum:
-                closest_index = index
-                closest_distance_sum = distance_sum
-        if closest_index is not None:
+        closest_index = r.find(t)
+        if closest_index >= 0:
             target_gspath.nodes = list_shift(target_gspath.nodes, (-closest_index - 1) % number_of_nodes)
             return True
     return False
