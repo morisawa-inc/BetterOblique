@@ -316,7 +316,7 @@ def fix_path_compatibility(reference_gspath, target_gspath):
         for index in find_all(r, t):
             distance_sum = 0
             for i1 in range(number_of_nodes):
-                i2 = (i1 + index) % len(number_of_nodes)
+                i2 = (i1 + index) % number_of_nodes
                 n1, n2 = reference_gspath.nodes[i1], target_gspath.nodes[i2]
                 if n1.type == n2.type:
                     distance_sum += distance_between_nodes(n1, n2)
@@ -324,7 +324,7 @@ def fix_path_compatibility(reference_gspath, target_gspath):
                 closest_index = index
                 closest_distance_sum = distance_sum
         if closest_index is not None:
-            target_gspath.nodes = list_shift(target_gspath.nodes, (closest_index - 1) % len(number_of_nodes))
+            target_gspath.nodes = list_shift(target_gspath.nodes, (closest_index - 1) % number_of_nodes)
             return True
     return False
 
