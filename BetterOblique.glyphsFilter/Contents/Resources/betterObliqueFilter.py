@@ -324,7 +324,7 @@ def fix_path_compatibility(reference_gspath, target_gspath):
                 closest_index = index
                 closest_distance_sum = distance_sum
         if closest_index is not None:
-            target_gspath.nodes = list_shift(target_gspath.nodes, (closest_index - 1) % number_of_nodes)
+            target_gspath.nodes = list_shift(target_gspath.nodes, (-closest_index - 1) % number_of_nodes)
             return True
     return False
 
