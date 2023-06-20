@@ -12,6 +12,7 @@ from fontTools.pens.pointPen import SegmentToPointPen
 
 import math
 import cmath
+import sys
 
 from GlyphsApp import *
 from GlyphsApp.plugins import *
@@ -282,18 +283,65 @@ def shear_path(path, shear_angle, std_vw, std_hw, mode='medium', strength=1.0, c
     
     return path
 
+def find_all(s, p):
+    i = s.find(p)
+    while i != -1:
+        yield i
+        i = s.find(p, i + 1)
+
+def distance_between_nodes(n1, n2):
+    return (n2.position.x - n1.position.x) ** 2 + (n2.position.y - n1.position.y) ** 2
+
+def list_shift(l, n):
+    return l[n:] + l[:n]
+
+def calc_comparable_path_string(gspath):
+    layer = GSLayer()
+    layer.paths.append(gspath.copy())
+    return layer.compareString()
+
+def fix_path_compatibility(reference_gspath, target_gspath):
+    # Match the start point between the two compatible paths.
+    # Find the start point which has the minimum distance among
+    # all the valid start points. Then make it the first node.
+    reference_structure = calc_comparable_path_string(reference_gspath)
+    target_structure = calc_comparable_path_string(target_gspath)
+    if reference_structure == target_structure:
+        return True
+    elif len(reference_structure) == len(target_structure):
+        r = reference_structure.replace('_', '') * 2
+        t = target_structure.replace('_', '')
+        closest_index, closest_distance_sum = None, sys.maxsize
+        number_of_nodes = len(reference_structure)
+        for index in find_all(r, t):
+            distance_sum = 0
+            for i1 in range(number_of_nodes):
+                i2 = (i1 + index) % len(number_of_nodes)
+                n1, n2 = reference_gspath.nodes[i1], target_gspath.nodes[i2]
+                if n1.type == n2.type:
+                    distance_sum += distance_between_nodes(n1, n2)
+            if distance_sum < closest_distance_sum:
+                closest_index = index
+                closest_distance_sum = distance_sum
+        if closest_index is not None:
+            target_gspath.nodes = list_shift(target_gspath.nodes, (closest_index - 1) % len(number_of_nodes))
+            return True
+    return False
+
 def shear_gspath(gspath, shear_angle, std_vw, std_hw, mode='medium', strength=1.0, curve_segments_only=False, vertical=False, skip_shear=False):
     layer = GSLayer()
+    orig_gspath = gspath.copy()
+    orig_node_names = tuple((node.name for node in gspath.nodes))
     path = shear_path(make_bezier_path_from_glyphs_path(gspath), shear_angle, std_vw, std_hw, mode=mode, strength=strength, curve_segments_only=curve_segments_only, vertical=vertical, skip_shear=skip_shear)
     first_node = path.asSegments()[-1][0]
     first_node_position = (first_node.x, first_node.y)
     draw_points(path, layer.getPointPen())
     if len(layer.paths) > 0 and layer.paths[0]:
         gspath.nodes = layer.paths[0].nodes
-        for node in gspath.nodes:
-            if node.type != OFFCURVE and (node.position.x, node.position.y) == first_node_position:
-                node.makeNodeFirst()
-                break
+        # Try fixing path compatibility afterwards and keep the node names when possible.
+        if fix_path_compatibility(orig_gspath, gspath):
+            for i, orig_node_name in enumerate(orig_node_names):
+                gspath.nodes[i].name = orig_node_name
 
 #
 
