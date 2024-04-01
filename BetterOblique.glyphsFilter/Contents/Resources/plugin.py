@@ -208,7 +208,7 @@ class BetterObliqueFilter(FilterWithDialog):
         if hstems and len(hstems) > 0:
             std_hw = hstems[0]
         shear_angle = math.radians(customParameters.get('angle', self.angle()))
-        optical_correction = ('none', 'thin', 'medium', 'thick')[customParameters.get('opticalCorrection', self.opticalCorrection())]
+        optical_correction = ('none', 'thin', 'medium', 'thick')[int(customParameters.get('opticalCorrection', self.opticalCorrection()))]
         strength = (self.sliderValueRange() - customParameters.get('strengthFactor', self.strengthFactor())) / self.sliderValueRange()
         curve_segments_only = customParameters.get('curveSegmentsOnly', self.curveSegmentsOnly())
         vertical = customParameters.get('vertical', self.vertical())
@@ -220,7 +220,7 @@ class BetterObliqueFilter(FilterWithDialog):
     @objc.python_method
     def generateCustomParameter(self):
         return "{0}; angle:{1}; opticalCorrection:{2}; strengthFactor:{3}; curveSegmentsOnly:{4}; vertical:{5}; keepCenter:{6}; applyWithoutSkewing:{7}".format(
-            self.__class__.__name__,
+            'BetterObliqueFilter',
             self.angle() or 0.0,
             self.opticalCorrection() or 0,
             self.strengthFactor() or 0,
