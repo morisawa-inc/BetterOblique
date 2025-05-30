@@ -22,9 +22,10 @@ def get_hstems(master):
         return master.horizontalStems
     font = master.font
     l = []
-    for stem_name in (stem.name for stem in font.stems if stem.horizontal):
-         if stem_name in master.stems:
-             l.append(master.stems[stem_name])
+    if font.stems:
+        for stem_name in (stem.name for stem in font.stems if stem.horizontal):
+             if stem_name in master.stems:
+                 l.append(master.stems[stem_name])
     return tuple(l)
 
 def get_vstems(master):
@@ -32,9 +33,10 @@ def get_vstems(master):
         return master.verticalStems
     font = master.font
     l = []
-    for stem_name in (stem.name for stem in font.stems if not stem.horizontal):
-         if stem_name in master.stems:
-             l.append(master.stems[stem_name])
+    if font.stems:
+        for stem_name in (stem.name for stem in font.stems if not stem.horizontal):
+             if stem_name in master.stems:
+                 l.append(master.stems[stem_name])
     return tuple(l)
 
 

@@ -6,11 +6,11 @@
 	<dict>
 		<key>Resources/IBdialog.nib</key>
 		<data>
-		VRIaJ0Z/n3Urzsjmb8iI4l7HjDM=
+		Ym7vfq+O2OTHwV52cADcfSBXD/w=
 		</data>
 		<key>Resources/IBdialog.xib</key>
 		<data>
-		FqauSxnxnMT+bpS+pETgxWfdxcw=
+		+KKlDG5mQwo1KfmdmkfhliVh1OQ=
 		</data>
 		<key>Resources/betterObliqueFilter.py</key>
 		<data>
@@ -18,7 +18,7 @@
 		</data>
 		<key>Resources/plugin.py</key>
 		<data>
-		8CtxZmhGraApUjhwM/iHElDZsko=
+		NwsgGSEv/hZQZfaaH8anAGgvB94=
 		</data>
 		<key>Resources/site-packages/beziers/__init__.py</key>
 		<data>
@@ -42,7 +42,7 @@
 		</data>
 		<key>Resources/site-packages/beziers/path/__init__.py</key>
 		<data>
-		+lisW4/Tpr4wtoWCAUCzsEnYBmw=
+		9npofLO6D0xoTsizggVVHseYb+Q=
 		</data>
 		<key>Resources/site-packages/beziers/path/geometricshapes.py</key>
 		<data>
@@ -120,10 +120,6 @@
 		<data>
 		OTS/H/zrNIWwIwgF2VCcHlPN9gE=
 		</data>
-		<key>Resources/site-packages/pyclipper.so</key>
-		<data>
-		+1Rru5SJD4onYp6qL+G+6yqqhKg=
-		</data>
 	</dict>
 	<key>files2</key>
 	<dict>
@@ -131,22 +127,22 @@
 		<dict>
 			<key>hash</key>
 			<data>
-			VRIaJ0Z/n3Urzsjmb8iI4l7HjDM=
+			Ym7vfq+O2OTHwV52cADcfSBXD/w=
 			</data>
 			<key>hash2</key>
 			<data>
-			ybkdCpAn03JO8H30WBhKI+O3vpWac5FjZe8ZFaNaKdo=
+			laIPQwWQe8qdlW+ABo/tI8QaGU6vFJ9j9wJuHWW2+aQ=
 			</data>
 		</dict>
 		<key>Resources/IBdialog.xib</key>
 		<dict>
 			<key>hash</key>
 			<data>
-			FqauSxnxnMT+bpS+pETgxWfdxcw=
+			+KKlDG5mQwo1KfmdmkfhliVh1OQ=
 			</data>
 			<key>hash2</key>
 			<data>
-			uVHy2ojZCAuDorIqM1GJykgUFRlhlKRa6KKhQMKnqqo=
+			QuZjjbWijaOg11EO23aJ6waikkC6POwxsFjmm7D4GIk=
 			</data>
 		</dict>
 		<key>Resources/betterObliqueFilter.py</key>
@@ -164,11 +160,11 @@
 		<dict>
 			<key>hash</key>
 			<data>
-			8CtxZmhGraApUjhwM/iHElDZsko=
+			NwsgGSEv/hZQZfaaH8anAGgvB94=
 			</data>
 			<key>hash2</key>
 			<data>
-			AzrY5SVx8K40kejc5ySuCYJK3IsZ8O43OzINy10m5yo=
+			nUuPmNue1dhpRUt+NOBR9sfXzq9/yxC8uHd2c3vkIok=
 			</data>
 		</dict>
 		<key>Resources/site-packages/beziers/__init__.py</key>
@@ -230,11 +226,11 @@
 		<dict>
 			<key>hash</key>
 			<data>
-			+lisW4/Tpr4wtoWCAUCzsEnYBmw=
+			9npofLO6D0xoTsizggVVHseYb+Q=
 			</data>
 			<key>hash2</key>
 			<data>
-			XeZk0KVxc5sAme0wNi79xRZSTjc1WRhrcebsHMHUkZY=
+			7OYLulooefouHNT3wP/PowDFjMnkFismJuY84Mz5kUA=
 			</data>
 		</dict>
 		<key>Resources/site-packages/beziers/path/geometricshapes.py</key>
@@ -444,17 +440,6 @@
 			<key>hash2</key>
 			<data>
 			2VMULEwguSEBrYIvW1cgFkjjlCuU3PhcVtRt4GF2Ey4=
-			</data>
-		</dict>
-		<key>Resources/site-packages/pyclipper.so</key>
-		<dict>
-			<key>hash</key>
-			<data>
-			+1Rru5SJD4onYp6qL+G+6yqqhKg=
-			</data>
-			<key>hash2</key>
-			<data>
-			gG9EJjcRTNJiueMh8E/TGC8ZYwao2e+s0C/Xt0dDsSw=
 			</data>
 		</dict>
 	</dict>
